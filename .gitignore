@@ -1,0 +1,5 @@
+# Ignoring the TML-AI directory
+TML-AI/
+
+.env
+
