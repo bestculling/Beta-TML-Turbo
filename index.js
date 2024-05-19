@@ -6,7 +6,7 @@ require('dotenv').config()
 const genAI = new GoogleGenerativeAI(process.env.API_KEY);
 
 const app = express();
-app.use(cors()); 
+app.use(cors());
 app.use(express.json());
 
 app.post('/api/generate', async (req, res) => {
@@ -18,13 +18,22 @@ app.post('/api/generate', async (req, res) => {
     ฉัน: ${req.body.prompt}?
     TML 🚀:`;
 
-    console.log(prompt)
+    // const result = await model.generateContent(prompt);
+    // const response = await result.response;
+    // const text = response.text();
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    // res.json({ response: text });
 
-    res.json({ response: text });
+    const result = await model.generateContentStream(prompt);
+    text = ''
+    for await (const chunk of result.stream) {
+      const chunkText = chunk.text();
+      console.log(chunkText)
+      text += chunkText
+    }
+
+    res.json({ response: text })
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'An error occurred while processing the request.' });
