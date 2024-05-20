@@ -1,13 +1,32 @@
-const express = require('express')
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const cors = require('cors');
-require('dotenv').config()
+import express from 'express'
+import mongoose from 'mongoose';
+import { GoogleGenerativeAI } from "@google/generative-ai"
+import cors from 'cors'
+import dotenv from 'dotenv';
+import authRoutes from './routes/auth.route.js';
+import cookieParser from 'cookie-parser';
+
+dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.API_KEY);
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
+
+app.use('/api/auth', authRoutes);
+
+mongoose
+  .connect(process.env.MONGO)
+  .then(() => {
+    console.log('Connected to MongoDB');
+  })
+  .catch((err) => {
+    console.log(err);
+  });
+
 
 app.post('/api/generate', async (req, res) => {
   try {
@@ -17,12 +36,6 @@ app.post('/api/generate', async (req, res) => {
     
     ฉัน: ${req.body.prompt}?
     TML 🚀:`;
-
-    // const result = await model.generateContent(prompt);
-    // const response = await result.response;
-    // const text = response.text();
-
-    // res.json({ response: text });
 
     const result = await model.generateContentStream(prompt);
     text = ''
