@@ -38,7 +38,7 @@ app.post('/api/generate', async (req, res) => {
     TML 🚀:`;
 
     const result = await model.generateContentStream(prompt);
-    text = ''
+    let text = ''
     for await (const chunk of result.stream) {
       const chunkText = chunk.text();
       console.log(chunkText)
