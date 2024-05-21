@@ -35,7 +35,7 @@ app.post('/api/generate', async (req, res) => {
     ${process.env.PROMPT}
     
     ฉัน: ${req.body.prompt}?
-    TML 🚀:`;
+    คุณ:`;
 
     const result = await model.generateContentStream(prompt);
     let text = ''
