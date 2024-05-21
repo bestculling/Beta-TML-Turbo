@@ -34,8 +34,7 @@ app.post('/api/generate', async (req, res) => {
     const prompt = `
     ${process.env.PROMPT}
     
-    ฉัน: ${req.body.prompt}?
-    คุณ:`;
+    ฉัน: ${req.body.prompt}?`;
 
     const result = await model.generateContentStream(prompt);
     let text = ''
