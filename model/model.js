@@ -25,6 +25,26 @@ const userSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-const User = mongoose.model('User', userSchema);
+const conversationSchema = new mongoose.Schema(
+    {
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+        },
+        prompt: {
+            type: String,
+            required: true
+        },
+        response: {
+            type: String,
+            required: true
+        }
+    },
+    { timestamps: true }
+);
 
-export default User;
+const User = mongoose.model('User', userSchema);
+const Conversation = mongoose.model('Conversation', conversationSchema);
+
+export { User, Conversation };
