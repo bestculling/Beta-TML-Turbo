@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.route.js';
 import cookieParser from 'cookie-parser';
 import { User, Conversation } from './model/model.js';
+import { safety_types } from './safety_types.js';
 
 dotenv.config();
 
@@ -30,14 +31,25 @@ mongoose
 
 app.post('/api/generate', async (req, res) => {
   try {
-    const userId = req.body.userId;  // ควรจะได้ userId จาก request body
+    const userId = req.body.userId;
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
     const prompt = `
     ${process.env.PROMPT}
     
     ${req.body.prompt}?`;
 
-    const result = await model.generateContentStream(prompt);
+    const safety_settings = [
+      {
+        "category": safety_types.HarmCategory.HARM_CATEGORY_DEROGATORY,
+        "threshold": safety_types.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+      },
+      {
+        "category": safety_types.HarmCategory.HARM_CATEGORY_VIOLENCE,
+        "threshold": safety_types.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+      },
+    ];
+
+    const result = await model.generateContentStream(prompt, { safety_settings });
     let text = '';
     for await (const chunk of result.stream) {
       const chunkText = chunk.text();
