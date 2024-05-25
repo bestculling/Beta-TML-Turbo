@@ -3,6 +3,7 @@ import { safetySettings } from '../utils/safety_settings.js';
 import { saveConversation } from '../utils/conversation.js';
 import { getCurrentTime, checkTimePhrase } from '../utils/time.js';
 import { User, Conversation } from '../model/model.js';
+import { TextLoader } from "langchain/document_loaders/fs/text";
 
 const history = [];
 const currentTime = getCurrentTime();
@@ -13,6 +14,22 @@ export const newGenerateResponse = async (req, res) => {
 
     const genAI = new GoogleGenerativeAI(process.env.API_KEY);
     const userPrompt = req.body.prompt;
+
+    const isNextJsRelated = /nextjs\s*15/i.test(userPrompt);
+    const isPromptEngineeringRelated = /prompt\s*engineering/i.test(userPrompt);
+
+    let fileContent = '';
+    if (isNextJsRelated) {
+        const loader = new TextLoader("docs/nextjs.txt");
+        const docs = await loader.load();
+        fileContent = docs[0].pageContent;
+    } else if (isPromptEngineeringRelated) {
+        const loader = new TextLoader("docs/prompt_engineering.txt");
+        const docs = await loader.load();
+        fileContent = docs[0].pageContent;
+    }
+
+    console.log(isNextJsRelated, isPromptEngineeringRelated);
 
     if (checkTimePhrase(userPrompt)) {
 
@@ -29,10 +46,32 @@ export const newGenerateResponse = async (req, res) => {
         res.json({ response: currentTime, history: history });
     } else {
 
-        const prompt = `
-          ${process.env.PROMPT}
-          
-          ${userPrompt}?`;
+        // สร้าง prompt ตามเนื้อหาที่เกี่ยวข้อง
+        let prompt;
+        if (isNextJsRelated) {
+            prompt = `
+                ${process.env.PROMPT}
+                
+                ข้อมูลเพิ่มเติมเกี่ยวกับ Next.js 14:
+                ${fileContent}
+                
+                คำถามจากผู้ใช้:
+                ${userPrompt}?`;
+        } else if (isPromptEngineeringRelated) {
+            prompt = `
+                ${process.env.PROMPT}
+                
+                ข้อมูลเพิ่มเติมเกี่ยวกับ Prompt Engineering:
+                ${fileContent}
+                
+                คำถามจากผู้ใช้:
+                ${userPrompt}?`;
+        } else {
+            prompt = `
+                ${process.env.PROMPT}
+                
+                ${userPrompt}?`;
+        }
 
         async function run() {
             const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
@@ -59,7 +98,10 @@ export const newGenerateResponse = async (req, res) => {
                 parts: [{ text: text }],
             });
 
-            await saveConversation(userId, userPrompt, text);
+            if (!isNextJsRelated && !isPromptEngineeringRelated) {
+                await saveConversation(userId, userPrompt, text);
+            }
+            // await saveConversation(userId, userPrompt, text);
             res.json({ response: text, history: history });
         }
 

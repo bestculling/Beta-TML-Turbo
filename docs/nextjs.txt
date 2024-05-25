@@ -1,0 +1,252 @@
+The Next.js 15 Release Candidate (RC) is now available. This early version allows you to test the latest features before the upcoming stable release.
+
+React: Support for the React 19 RC, React Compiler (Experimental), and hydration error improvements
+Caching: fetch requests, GET Route Handlers, and client navigations are no longer cached by default
+Partial Prerendering (Experimental): New Layout and Page config option for incremental adoption
+next/after (Experimental): New API to execute code after a response has finished streaming
+create-next-app: Updated design and a new flag to enable Turbopack in local development
+Bundling external packages (Stable): New config options for App and Pages Router
+
+Try the Next.js 15 RC today:
+
+Terminal
+
+npm install next@rc react@rc react-dom@rc
+Note: You can view the Next.js 15 RC documentation at rc.nextjs.org/docs until Next.js 15 GA.
+
+React 19 RC
+The Next.js App Router is built on the React canary channel for frameworks, which has allowed developers to use and provide feedback on these new React APIs before the v19 release.
+
+Next.js 15 RC now supports React 19 RC, which includes new features for both the client and server like Actions.
+
+Read the Next.js 15 upgrade guide, the React 19 upgrade guide, and watch the React Conf Keynote to learn more.
+
+Note: Some third party libraries may not be compatible with React 19 yet.
+
+React Compiler (Experimental)
+The React Compiler is a new experimental compiler created by the React team at Meta. The compiler understands your code at a deep level through its understanding of plain JavaScript semantics and the Rules of React, which allows it to add automatic optimizations to your code. The compiler reduces the amount of manual memoization developers have to do through APIs such as useMemo and useCallback - making code simpler, easier to maintain, and less error prone.
+
+With Next.js 15, we've added support for the React Compiler.
+
+Install babel-plugin-react-compiler:
+
+Terminal
+
+npm install babel-plugin-react-compiler
+Then, add experimental.reactCompiler option in next.config.js:
+
+next.config.ts
+
+const nextConfig = {
+  experimental: {
+    reactCompiler: true,
+  },
+};
+ 
+module.exports = nextConfig;
+Optionally, you can configure the compiler to run in "opt-in" mode as follows:
+
+next.config.ts
+
+const nextConfig = {
+  experimental: {
+    reactCompiler: {
+      compilationMode: 'annotation',
+    },
+  },
+};
+ 
+module.exports = nextConfig;
+Note: The React Compiler is currently only possible to use in Next.js through a Babel plugin, which could result in slower build times.
+
+Learn more about the React Compiler, and the available Next.js config options.
+
+Hydration error improvements
+Next.js 14.1 made improvements to error messages and hydration errors. Next.js 15 continues to build on those by adding an improved hydration error view. Hydration errors now display the source code of the error with suggestions on how to address the issue.
+
+Caching updates
+Next.js App Router launched with opinionated caching defaults. These were designed to provide the most performant option by default with the ability to opt out when required.
+
+Based on your feedback, we re-evaluated our caching heuristics and how they would interact with projects like Partial Prerendering (PPR) and with third party libraries using fetch.
+
+With Next.js 15, we’re changing the caching default for fetch requests, GET Route Handlers, and Client Router Cache from cached by default to uncached by default. If you want to retain the previous behavior, you can continue to opt-into caching.
+
+We're continuing to improve caching in Next.js in the coming months and we'll share more details in the Next.js 15 GA announcement.
+
+fetch Requests are no longer cached by default
+Next.js uses the Web fetch API cache option to configure how a server-side fetch request interacts with the framework's persistent HTTP cache:
+
+
+fetch('https://...', { cache: 'force-cache' | 'no-store' });
+no-store - fetch a resource from a remote server on every request and do not update the cache
+force-cache - fetch a resource from the cache (if it exists) or a remote server and update the cache
+In Next.js 14, force-cache was used by default if a cache option was not provided, unless a dynamic function or dynamic config option was used.
+
+In Next.js 15, no-store is used by default if a cache option is not provided. This means fetch requests will not be cached by default.
+
+You can still opt into caching fetch requests by:
+
+Setting the cache option to force-cache in a single fetch call
+Setting the dynamic route config option to 'force-static' for a single route
+Setting the fetchCache route config option to 'default-cache' to override all fetch requests in a Layout or Page to use force-cache unless they explicitly specify their own cache option
+GET Route Handlers are no longer cached by default
+In Next 14, Route Handlers that used the GET HTTP method were cached by default unless they used a dynamic function or dynamic config option. In Next.js 15, GET functions are not cached by default.
+
+You can still opt into caching using a static route config option such as export dynamic = 'force-static'.
+
+Special Route Handlers like sitemap.ts, opengraph-image.tsx, and icon.tsx, and other metadata files remain static by default unless they use dynamic functions or dynamic config options.
+
+Client Router Cache no longer caches Page components by default
+In Next.js 14.2.0, we introduced an experimental staleTimes flag to allow custom configuration of the Router Cache.
+
+In Next.js 15, this flag still remains accessible, but we are changing the default behavior to have a staleTime of 0 for Page segments. This means that as you navigate around your app, the client will always reflect the latest data from the Page component(s) that become active as part of the navigation. However, there are still important behaviors that remain unchanged:
+
+Shared layout data won't be refetched from the server to continue to support partial rendering.
+Back/forward navigation will still restore from cache to ensure the browser can restore scroll position.
+Loading.js will remain cached for 5 minutes (or the value of the staleTimes.static configuration).
+You can opt into the previous Client Router Cache behavior by setting the following configuration:
+
+next.config.ts
+
+const nextConfig = {
+  experimental: {
+    staleTimes: {
+      dynamic: 30,
+    },
+  },
+};
+ 
+module.exports = nextConfig;
+Incremental adoption of Partial Prerendering (Experimental)
+In Next.js 14, we introduced Partial Prerendering (PPR) - an optimization that combines static and dynamic rendering on the same page.
+
+Next.js currently defaults to static rendering unless you use dynamic functions such as cookies(), headers(), and uncached data requests. These APIs opt an entire route into dynamic rendering. With PPR, you can wrap any dynamic UI in a Suspense boundary. When a new request comes in, Next.js will immediately serve a static HTML shell, then render and stream the dynamic parts in the same HTTP request.
+
+To allow for incremental adoption, we’ve added an experimental_ppr route config option for opting specific Layouts and Pages into PPR:
+
+app/page.jsx
+
+import { Suspense } from "react"
+import { StaticComponent, DynamicComponent } from "@/app/ui"
+ 
+export const experimental_ppr = true
+ 
+export default function Page() {
+  return {
+     <>
+	     <StaticComponent />
+	     <Suspense fallback={...}>
+		     <DynamicComponent />
+	     </Suspense>
+     </>
+  };
+}
+To use the new option, you’ll need to set the experimental.ppr config in your next.config.js file to 'incremental':
+
+next.config.ts
+
+const nextConfig = {
+  experimental: {
+    ppr: 'incremental',
+  },
+};
+ 
+module.exports = nextConfig;
+Once all the segments have PPR enabled, it’ll be considered safe for you to set the ppr value to true, and enable it for the entire app and all future routes.
+
+We will share more about our PPR roadmap in our Next.js 15 GA blog post.
+
+Learn more about Partial Prerendering.
+
+Executing code after a response with next/after (Experimental)
+When processing a user request, the server typically performs tasks directly related to computing the response. However, you may need to perform tasks such as logging, analytics, and other external system synchronization.
+
+Since these tasks are not directly related to the response, the user should not have to wait for them to complete. Deferring the work after responding to the user poses a challenge because serverless functions stop computation immediately after the response is closed.
+
+after() is a new experimental API that solves this problem by allowing you to schedule work to be processed after the response has finished streaming, enabling secondary tasks to run without blocking the primary response.
+
+To use it, add experimental.after to next.config.js:
+
+next.config.ts
+
+const nextConfig = {
+  experimental: {
+    after: true,
+  },
+};
+ 
+module.exports = nextConfig;
+Then, import the function in Server Components, Server Actions, Route Handlers, or Middleware.
+
+
+import { unstable_after as after } from 'next/server';
+import { log } from '@/app/utils';
+ 
+export default function Layout({ children }) {
+  // Secondary task
+  after(() => {
+    log();
+  });
+ 
+  // Primary task
+  return <>{children}</>;
+}
+Learn more about next/after.
+
+create-next-app updates
+For Next.js 15, we've updated create-next-app with a new design.
+
+When running create-next-app, there is a new prompt asking if you want to enable Turbopack for local development (defaults to No).
+
+Terminal
+
+✔ Would you like to use Turbopack for next dev? … No / Yes
+The --turbo flag can be used to enable Turbopack.
+
+Terminal
+
+npx create-next-app@rc --turbo
+To make getting started on a new project even easier, a new --empty flag has been added to the CLI. This will remove any extraneous files and styles, resulting in a minimal "hello world" page.
+
+Terminal
+
+npx create-next-app@rc --empty
+Optimizing bundling of external packages (Stable)
+Bundling external packages can improve the cold start performance of your application. In the App Router, external packages are bundled by default, and you can opt-out specific packages using the new serverExternalPackages config option.
+
+In the Pages Router, external packages are not bundled by default, but you can provide a list of packages to bundle using the existing transpilePackages option. With this configuration option, you need to specify each package.
+
+To unify configuration between App and Pages Router, we’re introducing a new option, bundlePagesRouterDependencies to match the default automatic bundling of the App Router. You can then use serverExternalPackages to opt-out specific packages, if needed.
+
+next.config.ts
+
+const nextConfig = {
+  // Automatically bundle external packages in the Pages Router:
+  bundlePagesRouterDependencies: true,
+  // Opt specific packages out of bundling for both App and Pages Router:
+  serverExternalPackages: ['package-name'],
+};
+ 
+module.exports = nextConfig;
+Learn more about optimizing external packages.
+
+Other Changes
+[Breaking] Minimum React version is now 19 RC
+[Breaking] next/image: Removed squoosh in favor of sharp as an optional dependency (PR)
+[Breaking] next/image: Changed default Content-Disposition to attachment (PR)
+[Breaking] next/image: Error when src has leading or trailing spaces (PR)
+[Breaking] Middleware: Apply react-server condition to limit unrecommended react API imports (PR)
+[Breaking] next/font: Removed support for external @next/font package (PR)
+[Breaking] next/font: Removed font-family hashing (PR)
+[Breaking] Caching: force-dynamic will now set a no-store default to the fetch cache (PR)
+[Breaking] Config: Enable swcMinify (PR), missingSuspenseWithCSRBailout (PR), and outputFileTracing (PR) behavior by default and remove deprecated options
+[Breaking] Remove auto-instrumentation for Speed Insights (must now use the dedicated @vercel/speed-insights package) (PR)
+[Improvement] Align sitemap URLs in development and production (PR)
+[Improvement] Metadata: Updated environmental variable fallbacks for metadataBase when hosted on Vercel (PR)
+[Improvement] Fix tree-shaking with mixed namespace and named imports from optimizePackageImports (PR)
+[Improvement] Parallel Routes: Provide unmatched catch-all routes with all known params (PR)
+[Improvement] Config bundlePagesExternals is now stable and renamed to bundlePagesRouterDependencies
+[Improvement] Config serverComponentsExternalPackages is now stable and renamed to serverExternalPackages
+[Improvement] create-next-app: New projects ignore all .env files by default (PR)
+[Docs] Improve auth documentation (PR)
+[Docs] @next/env package (PR)
