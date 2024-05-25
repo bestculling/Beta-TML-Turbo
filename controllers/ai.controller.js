@@ -1,91 +1,69 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { safety_types } from '../safety_types.js';
+import { safetySettings } from '../utils/safety_settings.js';
+import { saveConversation } from '../utils/conversation.js';
+import { getCurrentTime, checkTimePhrase } from '../utils/time.js';
 import { User, Conversation } from '../model/model.js';
 
 const history = [];
+const currentTime = getCurrentTime();
 
 export const newGenerateResponse = async (req, res) => {
+
+    const { userId } = req.body;
+
     const genAI = new GoogleGenerativeAI(process.env.API_KEY);
-    const prompt = `
-      ${process.env.PROMPT}
-      
-      ${req.body.prompt}?`;
+    const userPrompt = req.body.prompt;
 
-    async function run() {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    if (checkTimePhrase(userPrompt)) {
 
-        const chat = model.startChat({
-            history: history,
-            generationConfig: {
-                maxOutputTokens: 100,
-            },
-        });
-
-        const msg = prompt;
-
-        const result = await chat.sendMessage(msg);
-        const response = await result.response;
-        const text = response.text();
-
-        // อัปเดต history ด้วยข้อความล่าสุด
         history.push({
             role: "user",
-            parts: [{ text: req.body.prompt }],
+            parts: [{ text: userPrompt }],
         });
         history.push({
             role: "model",
-            parts: [{ text: text }],
+            parts: [{ text: currentTime }],
         });
 
-        res.json({ response: text, history: history });
-    }
+        await saveConversation(userId, userPrompt, currentTime);
+        res.json({ response: currentTime, history: history });
+    } else {
 
-    run();
-};
-
-
-export const generateResponse = async (req, res) => {
-    const genAI = new GoogleGenerativeAI(process.env.API_KEY);
-    try {
-        const userId = req.body.userId;
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
         const prompt = `
-      ${process.env.PROMPT}
-      
-      ${req.body.prompt}?`;
+          ${process.env.PROMPT}
+          
+          ${userPrompt}?`;
 
-        const safety_settings = [
-            {
-                "category": safety_types.HarmCategory.HARM_CATEGORY_DEROGATORY,
-                "threshold": safety_types.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
-            },
-            {
-                "category": safety_types.HarmCategory.HARM_CATEGORY_VIOLENCE,
-                "threshold": safety_types.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
-            },
-        ];
+        async function run() {
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
 
-        const result = await model.generateContentStream(prompt, { safety_settings });
-        let text = '';
-        for await (const chunk of result.stream) {
-            const chunkText = chunk.text();
-            // console.log(chunkText);
-            text += chunkText;
+            const chat = model.startChat({
+                history: history,
+                generationConfig: {
+                    maxOutputTokens: 8000,
+                },
+            });
+
+            const msg = prompt;
+
+            const result = await chat.sendMessage(msg, { safety_settings: safetySettings });
+            const response = await result.response;
+            const text = response.text();
+
+            history.push({
+                role: "user",
+                parts: [{ text: userPrompt }],
+            });
+            history.push({
+                role: "model",
+                parts: [{ text: text }],
+            });
+
+            await saveConversation(userId, userPrompt, text);
+            res.json({ response: text, history: history });
         }
 
-        // บันทึกประวัติการสนทนา
-        const conversation = new Conversation({
-            userId,
-            prompt: req.body.single,
-            response: text
-        });
-        await conversation.save();
-
-        res.json({ response: text });
-        console.log("Prompt: ", req.body.single)
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred while processing the request.' });
+        run();
     }
 };
 

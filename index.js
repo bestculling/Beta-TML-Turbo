@@ -4,8 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.route.js';
 import cookieParser from 'cookie-parser';
-import { User, Conversation } from './model/model.js';
-import { generateResponse, getConversations, newGenerateResponse } from './controllers/ai.controller.js';
+import { getConversations, newGenerateResponse } from './controllers/ai.controller.js';
 
 dotenv.config();
 
@@ -26,7 +25,7 @@ mongoose
     console.log(err);
   });
 
-app.post('/api/generate', generateResponse);
+// app.post('/api/generate', generateResponse);
 app.post('/api/newGenerate', newGenerateResponse);
 
 app.get('/api/conversations/:userId', getConversations);
