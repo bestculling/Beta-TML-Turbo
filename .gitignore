@@ -1,7 +1,7 @@
-node_modules
-
 # Ignoring the TML-AI directory
 TML-AI/
 
 .env
+
+node_modules
 
