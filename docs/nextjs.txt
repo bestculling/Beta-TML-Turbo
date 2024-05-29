@@ -250,3 +250,118 @@ Other Changes
 [Improvement] create-next-app: New projects ignore all .env files by default (PR)
 [Docs] Improve auth documentation (PR)
 [Docs] @next/env package (PR)
+
+Example Next15
+===============
+Folder Structure
+- app
+L (auth)/(signin)
+L (dashboard)/dashboard
+L api
+L layout.tsx
+L not-found.tsx 
+- components
+L forms
+L kanban
+L layout
+L modal
+L tables
+L ui
+L breadcrumb.tsx
+L dashboard-nav.tsx
+L date-range-picker.tsx
+L file-upload.tsx
+L github-auth-button.tsx
+L icons.tsx
+L overview.tsx
+L recent-sales.tsx
+- constants
+- hooks
+- lib
+- public
+- types
+- .eslintrc.json
+- .gitignore
+- .prettierrc
+- README.md
+- auth.config.ts
+- auth.ts
+- components.json
+- env.example.txt
+- middleware.ts
+- next.config.js
+- package-lock.json
+- package.json
+- postcss.config.js
+- tailwind.config.js
+- tsconfig.json
+
+code here:
+app/layout.tsx
+```JavaScript 
+import Providers from '@/components/layout/providers';
+import { Toaster } from '@/components/ui/toaster';
+import '@uploadthing/react/styles.css';
+import type { Metadata } from 'next';
+import NextTopLoader from 'nextjs-toploader';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { auth } from '@/auth';
+
+const inter = Inter({ subsets: ['latin'] });
+
+export const metadata: Metadata = {
+  title: 'Next Shadcn',
+  description: 'Basic dashboard with Next.js and Shadcn'
+};
+
+export default async function RootLayout({
+  children
+}: {
+  children: React.ReactNode;
+}) {
+  const session = await auth();
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} overflow-hidden`}>
+        <NextTopLoader />
+        <Providers session={session}>
+          <Toaster />
+          {children}
+        </Providers>
+      </body>
+    </html>
+  );
+}
+```
+
+auth.ts
+```JavaScript
+import NextAuth from 'next-auth';
+import authConfig from './auth.config';
+
+export const { auth, handlers, signOut, signIn } = NextAuth(authConfig);
+```
+
+components/layout/providers.tsx
+```JavaScript
+'use client';
+import React from 'react';
+import ThemeProvider from './ThemeToggle/theme-provider';
+import { SessionProvider, SessionProviderProps } from 'next-auth/react';
+export default function Providers({
+  session,
+  children
+}: {
+  session: SessionProviderProps['session'];
+  children: React.ReactNode;
+}) {
+  return (
+    <>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <SessionProvider session={session}>{children}</SessionProvider>
+      </ThemeProvider>
+    </>
+  );
+}
+```
