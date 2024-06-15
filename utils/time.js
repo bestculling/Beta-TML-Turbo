@@ -2,7 +2,7 @@ export const getCurrentTime = () => {
     const now = new Date();
     const hours = now.getHours();
     const minutes = now.getMinutes();
-    return `ขณะนี้เป็นเวลา ${hours} ${minutes} นาที นะจ๊ะ 😊`;
+    return `ขณะนี้เป็นเวลา ${hours}:${minutes} นาที นะจ๊ะ 😊`;
 };
 
 export const checkTimePhrase = (sentence) => {

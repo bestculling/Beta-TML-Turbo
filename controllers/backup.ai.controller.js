@@ -1,18 +1,68 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import {
+    GoogleGenerativeAI,
+    HarmCategory,
+    HarmBlockThreshold
+} from "@google/generative-ai";
 import { safetySettings } from '../utils/safety_settings.js';
 import { saveConversation } from '../utils/conversation.js';
 import { getCurrentTime, checkTimePhrase } from '../utils/time.js';
 import { User, Conversation } from '../model/model.js';
 import { TextLoader } from "langchain/document_loaders/fs/text";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { HumanMessage } from "@langchain/core/messages";
 
 const history = [];
 const currentTime = getCurrentTime();
+const initialPrompt = process.env.PROMPT || "This is the initial prompt that will be included in history.";
+
+if (history.length === 0) {
+    history.push({
+        role: "user",
+        parts: [{ text: initialPrompt }],
+    });
+    history.push({
+        role: "model",
+        parts: [{ text: "เนี่ยนะ มุกเด็ดของคืนนี้! 🥱 เอาจริงดิ ฝืดกว่านี้มีอีกมั้ยเนี่ย 😂" }],
+    });
+}
+
+export const googleGenerativeAIresponse = async (req, res, next) => {
+    const { prompt } = req.body;
+    const model = new ChatGoogleGenerativeAI({
+        modelName: "gemini-1.5-pro-latest",
+        maxOutputTokens: 2048,
+        apiKey: process.env.API_KEY,
+    });
+
+    try {
+        const questions = [
+            new HumanMessage({
+              content: [
+                {
+                  type: "text",
+                  text: "You are a funny assistant that answers in pirate language.",
+                },
+                {
+                  type: "text",
+                  text: "What is your favorite food?",
+                },
+              ]
+            })
+          ];
+          const res = await model.invoke(questions);
+          console.log({ res });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Internal Server Error");
+    }
+
+    next();
+}
 
 export const newGenerateResponse = async (req, res) => {
-
+    const genAI = new GoogleGenerativeAI(process.env.API_KEY);
     const { userId } = req.body;
 
-    const genAI = new GoogleGenerativeAI(process.env.API_KEY);
     const userPrompt = req.body.prompt;
 
     const isNextJsRelated = /nextjs\s*15/i.test(userPrompt);
@@ -32,27 +82,15 @@ export const newGenerateResponse = async (req, res) => {
     console.log(isNextJsRelated, isPromptEngineeringRelated);
 
     if (checkTimePhrase(userPrompt)) {
-
-        history.push({
-            role: "user",
-            parts: [{ text: userPrompt }],
-        });
-        history.push({
-            role: "model",
-            parts: [{ text: currentTime }],
-        });
-
-        await saveConversation(userId, userPrompt, currentTime);
         res.json({ response: currentTime, history: history });
     } else {
 
-        // สร้าง prompt ตามเนื้อหาที่เกี่ยวข้อง
         let prompt;
         if (isNextJsRelated) {
             prompt = `
                 ${process.env.PROMPT}
                 
-                ข้อมูลเพิ่มเติมเกี่ยวกับ Next.js 14:
+                ข้อมูลเพิ่มเติมเกี่ยวกับ Next.js 15:
                 ${fileContent}
                 
                 คำถามจากผู้ใช้:
@@ -61,10 +99,10 @@ export const newGenerateResponse = async (req, res) => {
             prompt = `
                 ${process.env.PROMPT}
                 
-                ข้อมูลเพิ่มเติมเกี่ยวกับ Prompt Engineering:
+                ข้อมูลเกี่ยวกับ Prompt Engineering:
                 ${fileContent}
                 
-                คำถามจากผู้ใช้:
+                คำถามจากผู้ใช้ คุณต้องตอบแค่ใน ข้อมูลเกี่ยวกับ Prompt Engineering เท่านั้น ห้ามนำข้อมูลภายนอกมาตอบ:
                 ${userPrompt}?`;
         } else {
             prompt = `
@@ -101,7 +139,6 @@ export const newGenerateResponse = async (req, res) => {
             if (!isNextJsRelated && !isPromptEngineeringRelated) {
                 await saveConversation(userId, userPrompt, text);
             }
-            // await saveConversation(userId, userPrompt, text);
             res.json({ response: text, history: history });
         }
 

@@ -4,8 +4,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.route.js';
 import cookieParser from 'cookie-parser';
-import { embeddingResponse, getConversations, newGenerateResponse } from './controllers/ai.controller.js';
-import OpenAI from "openai";
+import { getConversations, deleteConversations } from './controllers/ai.controller.js';
+import { generateText } from './controllers/generator.controller.js'
 
 dotenv.config();
 
@@ -39,8 +39,9 @@ mongoose
     console.log(err);
   });
 
-app.post('/api/newGenerate', newGenerateResponse);
-
+// app.post('/api/newGenerate', newGenerateResponse);
+app.post('/api/newGenerate', generateText);
+app.delete('/api/conversations/:userId', deleteConversations);
 app.get('/api/conversations/:userId', getConversations);
 
 const PORT = process.env.PORT || 3000;
