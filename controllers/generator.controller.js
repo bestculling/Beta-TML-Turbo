@@ -68,7 +68,9 @@ export const generateText = (req, res) => {
     // run model
     async function run() {
         try {
-            const { prompt, userId } = req.body;
+            const prompt = req.body.prompt[0];
+            const userId = req.body.userId[0];
+
             const chatSession = model.startChat({
                 generationConfig,
                 history: history,
@@ -79,9 +81,8 @@ export const generateText = (req, res) => {
             const response = await result.response;
             const text = response.text();
 
-            // จำกัดความยาวของ history
             if (history.length >= MAX_HISTORY_LENGTH) {
-                history.splice(0, 2); // ลบข้อความเก่าที่สุดออก (FIFO)
+                history.splice(0, 2);
                 console.log(history)
             }
 
@@ -104,3 +105,32 @@ export const generateText = (req, res) => {
 
     run();
 };
+
+export const generateTextfromImage = async (req, res) => {
+    const prompt = req.body.prompt[0];
+    const userId = req.body.userId[0];
+    const image = req.body.image[0];
+    const genAI = new GoogleGenerativeAI(process.env.API_KEY);
+
+    async function run() {
+        // Choose a model that's appropriate for your use case.
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        const imagePart = {
+            inlineData: {
+                data: image, // Base64 string ที่รับมาจาก frontend
+                mimeType: "image/jpeg" // หรือชนิดไฟล์ภาพที่ถูกต้อง
+            }
+        };
+
+        const result = await model.generateContent([prompt, imagePart]);
+        const response = result.response;
+        const text = response.text();
+        console.log(text)
+        res.json({
+            respone: text
+        })
+    }
+
+    run();
+}
