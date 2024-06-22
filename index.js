@@ -19,13 +19,6 @@ const app = express();
 const allowedOrigins = ['https://tml1-turbo.netlify.app', 'http://localhost:5173'];
 
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
   credentials: true // อนุญาตให้ส่ง cookies
 }));
 
