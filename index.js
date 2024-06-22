@@ -3,12 +3,14 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.route.js';
-import cookieParser from 'cookie-parser';
 import { getConversations, deleteConversations } from './controllers/ai.controller.js';
 import { generateText } from './controllers/generator.controller.js'
+// import { summaryPDF } from './controllers/genSummaryPDF.js'
 import formidable from 'formidable';
 import fs from 'fs'
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import cookieParser from 'cookie-parser';
+import { verifyToken } from './middleware/auth.middleware.js'
 
 dotenv.config();
 
@@ -16,17 +18,16 @@ const app = express();
 
 const allowedOrigins = ['https://tml1-turbo.netlify.app', 'http://localhost:5173'];
 
-const corsOptions = {
+app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
-  }
-};
-
-app.use(cors(corsOptions));
+  },
+  credentials: true // อนุญาตให้ส่ง cookies
+}));
 
 app.use(express.json());
 app.use(cookieParser());
@@ -42,8 +43,9 @@ mongoose
     console.log(err);
   });
 
-// app.post('/api/newGenerate', newGenerateResponse);
-app.post('/api/newGenerate', (req, res) => {
+app.post('/api/newGenerate', verifyToken, (req, res) => {
+  const username = req.cookies.access_token;
+  console.log(username);
   const form = formidable({ multiples: true });
 
   form.parse(req, (err, fields, files) => {
@@ -94,7 +96,7 @@ app.post('/api/newGenerateTextFromImage', (req, res) => {
     }
   });
 });
-
+// app.post('/api/summaryPDF', summaryPDF);
 app.delete('/api/conversations/:userId', deleteConversations);
 app.get('/api/conversations/:userId', getConversations);
 

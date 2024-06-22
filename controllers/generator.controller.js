@@ -9,7 +9,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const MAX_HISTORY_LENGTH = 4;
-let history = [
+export let history = [
     {
         role: "user",
         parts: [
@@ -106,31 +106,30 @@ export const generateText = (req, res) => {
     run();
 };
 
-export const generateTextfromImage = async (req, res) => {
-    const prompt = req.body.prompt[0];
-    const userId = req.body.userId[0];
-    const image = req.body.image[0];
-    const genAI = new GoogleGenerativeAI(process.env.API_KEY);
+// export const generateTextfromImage = async (req, res) => {
+//     const prompt = req.body.prompt[0];
+//     const userId = req.body.userId[0];
+//     const image = req.body.image[0];
+//     const genAI = new GoogleGenerativeAI(process.env.API_KEY);
 
-    async function run() {
-        // Choose a model that's appropriate for your use case.
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+//     async function run() {
+//         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        const imagePart = {
-            inlineData: {
-                data: image, // Base64 string ที่รับมาจาก frontend
-                mimeType: "image/jpeg" // หรือชนิดไฟล์ภาพที่ถูกต้อง
-            }
-        };
+//         const imagePart = {
+//             inlineData: {
+//                 data: image, 
+//                 mimeType: "image/jpeg" 
+//             }
+//         };
 
-        const result = await model.generateContent([prompt, imagePart]);
-        const response = result.response;
-        const text = response.text();
-        console.log(text)
-        res.json({
-            respone: text
-        })
-    }
+//         const result = await model.generateContent([prompt, imagePart]);
+//         const response = result.response;
+//         const text = response.text();
+//         console.log(text)
+//         res.json({
+//             respone: text
+//         })
+//     }
 
-    run();
-}
+//     run();
+// }
