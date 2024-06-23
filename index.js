@@ -36,7 +36,7 @@ mongoose
     console.log(err);
   });
 
-app.post('/api/newGenerate', verifyToken, (req, res) => {
+app.post('/api/newGenerate', (req, res) => {
   const username = req.cookies.access_token;
   console.log(username);
   const form = formidable({ multiples: true });
